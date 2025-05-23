@@ -38,6 +38,7 @@ Look for SNAPPR_DEBUG and SNAPPR_ERROR log messages for detailed debugging info.
 
 import asyncio
 import os
+import sys
 from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
@@ -49,9 +50,10 @@ import mcp.server.stdio
 from pydantic import BaseModel
 
 
-# Snappr API Configuration
-SNAPPR_BASE_URL = "https://api.snappr.com/"
-SNAPPR_SANDBOX_URL = "https://sandbox.snappr.com/"
+def debug_print(message: str):
+    """Debug print function - disabled for MCP compatibility"""
+    # Completely disabled to prevent stdout interference with MCP protocol
+    pass
 
 
 class SnapprClient:
@@ -59,7 +61,7 @@ class SnapprClient:
 
     def __init__(self, api_key: str, use_sandbox: bool = False):
         self.api_key = api_key
-        self.base_url = SNAPPR_SANDBOX_URL if use_sandbox else SNAPPR_BASE_URL
+        self.base_url = os.getenv("SNAPPR_BASE_URL")
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -69,38 +71,38 @@ class SnapprClient:
 
     async def get(self, endpoint: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """Make GET request to Snappr API"""
-        print(f"SNAPPR_HTTP_DEBUG: Starting GET request to endpoint: {endpoint}")
-        print(f"SNAPPR_HTTP_DEBUG: Params: {params}")
+        debug_print(f"SNAPPR_HTTP_DEBUG: Starting GET request to endpoint: {endpoint}")
+        debug_print(f"SNAPPR_HTTP_DEBUG: Params: {params}")
 
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 url = urljoin(self.base_url, endpoint)
-                print(f"SNAPPR_HTTP_DEBUG: Full URL: {url}")
-                print(f"SNAPPR_HTTP_DEBUG: Headers: {self.headers}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Full URL: {url}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Headers: {self.headers}")
 
                 response = await client.get(url, headers=self.headers, params=params)
 
-                print(f"SNAPPR_HTTP_DEBUG: Response status: {response.status_code}")
-                print(f"SNAPPR_HTTP_DEBUG: Response headers: {dict(response.headers)}")
-                print(f"SNAPPR_HTTP_DEBUG: Response text: {response.text}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Response status: {response.status_code}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Response headers: {dict(response.headers)}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Response text: {response.text}")
 
                 response.raise_for_status()
 
                 result = response.json()
-                print(f"SNAPPR_HTTP_DEBUG: Parsed JSON: {result}")
+                debug_print(f"SNAPPR_HTTP_DEBUG: Parsed JSON: {result}")
                 return result
 
         except httpx.ConnectError as e:
             error_msg = f"SNAPPR_HTTP_ERROR: Failed to connect to Snappr API: {str(e)}"
-            print(error_msg)
+            debug_print(error_msg)
             raise ConnectionError(error_msg)
         except httpx.TimeoutException as e:
             error_msg = f"SNAPPR_HTTP_ERROR: Snappr API request timed out: {str(e)}"
-            print(error_msg)
+            debug_print(error_msg)
             raise TimeoutError(error_msg)
         except httpx.HTTPStatusError as e:
             error_msg = f"SNAPPR_HTTP_ERROR: HTTP {e.response.status_code}: {e.response.text}"
-            print(error_msg)
+            debug_print(error_msg)
             if e.response.status_code == 401:
                 raise ValueError("Invalid Snappr API key. Please check your SNAPPR_API_KEY environment variable.")
             elif e.response.status_code == 404:
@@ -109,7 +111,7 @@ class SnapprClient:
                 raise ValueError(f"Snappr API error ({e.response.status_code}): {e.response.text}")
         except Exception as e:
             error_msg = f"SNAPPR_HTTP_ERROR: Unexpected error: {str(e)}"
-            print(error_msg)
+            debug_print(error_msg)
             raise
 
     async def post(self, endpoint: str, data: Optional[Dict] = None) -> Dict[str, Any]:
@@ -348,26 +350,26 @@ def get_client() -> SnapprClient:
     """Get configured Snappr client"""
     global snappr_client
     if snappr_client is None:
-        print("SNAPPR_CLIENT_DEBUG: Initializing new Snappr client")
+        debug_print("SNAPPR_CLIENT_DEBUG: Initializing new Snappr client")
 
         api_key = os.getenv("SNAPPR_API_KEY")
-        print(f"SNAPPR_CLIENT_DEBUG: API Key found: {'Yes' if api_key else 'No'}")
+        debug_print(f"SNAPPR_CLIENT_DEBUG: API Key found: {'Yes' if api_key else 'No'}")
 
         if not api_key:
-            print("SNAPPR_CLIENT_ERROR: SNAPPR_API_KEY environment variable is not set!")
-            print("SNAPPR_CLIENT_ERROR: Please set your API key with: export SNAPPR_API_KEY=your_api_key_here")
+            debug_print("SNAPPR_CLIENT_ERROR: SNAPPR_API_KEY environment variable is not set!")
+            debug_print("SNAPPR_CLIENT_ERROR: Please set your API key with: export SNAPPR_API_KEY=your_api_key_here")
             raise ValueError("SNAPPR_API_KEY environment variable is required")
 
         if api_key:
-            print(f"SNAPPR_CLIENT_DEBUG: API Key length: {len(api_key)}")
-            print(f"SNAPPR_CLIENT_DEBUG: API Key starts with: {api_key[:10]}...")
+            debug_print(f"SNAPPR_CLIENT_DEBUG: API Key length: {len(api_key)}")
+            debug_print(f"SNAPPR_CLIENT_DEBUG: API Key starts with: {api_key[:10]}...")
 
         use_sandbox = os.getenv("SNAPPR_USE_SANDBOX", "false").lower() == "true"
-        print(f"SNAPPR_CLIENT_DEBUG: Using sandbox: {use_sandbox}")
+        debug_print(f"SNAPPR_CLIENT_DEBUG: Using sandbox: {use_sandbox}")
 
         snappr_client = SnapprClient(api_key, use_sandbox)
-        print(f"SNAPPR_CLIENT_DEBUG: Client initialized with base URL: {snappr_client.base_url}")
-        print(f"SNAPPR_CLIENT_DEBUG: Authorization header: Bearer {api_key[:10]}...")
+        debug_print(f"SNAPPR_CLIENT_DEBUG: Client initialized with base URL: {snappr_client.base_url}")
+        debug_print(f"SNAPPR_CLIENT_DEBUG: Authorization header: Bearer {api_key[:10]}...")
 
     return snappr_client
 
@@ -405,23 +407,19 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[Dict[str, Any]
 
 async def handle_list_shoot_types(client: SnapprClient, args: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Get available photography shoot types"""
-    print("SNAPPR_DEBUG: Starting list_shoot_types request")
+    debug_print("SNAPPR_DEBUG: Starting list_shoot_types request")
 
     try:
-        # Log the API call details - using the correct endpoint from docs
-        endpoint = "shoottypes"
+        # Using the correct endpoint from official Snappr API docs
+        endpoint = "shoottypes"  # Correct endpoint per documentation
         full_url = urljoin(client.base_url, endpoint)
-        print(f"SNAPPR_DEBUG: Making GET request to: {full_url}")
-        print(f"SNAPPR_DEBUG: Using headers: {client.headers}")
+        debug_print(f"SNAPPR_DEBUG: Making GET request to: {full_url}")
+        debug_print(f"SNAPPR_DEBUG: Using headers: {client.headers}")
 
         result = await client.get(endpoint)
 
-        print(f"SNAPPR_DEBUG: API response received: {result}")
-        print(f"SNAPPR_DEBUG: Response type: {type(result)}")
-
-        # Debug: Show raw API response
-        message = f"📸 Available Photography Shoot Types:\n\n"
-        message += f"Raw API Response: {result}\n\n"
+        debug_print(f"SNAPPR_DEBUG: API response received: {result}")
+        debug_print(f"SNAPPR_DEBUG: Response type: {type(result)}")
 
         # Based on official Snappr API docs, the response structure is:
         # {
@@ -435,108 +433,104 @@ async def handle_list_shoot_types(client: SnapprClient, args: Dict[str, Any]) ->
         #   "total": 10
         # }
 
+        message = f"📸 **Available Photography Shoot Types**\n\n"
+
         if isinstance(result, dict) and "results" in result:
             shoot_types = result.get("results", [])
             total = result.get("total", 0)
             count = result.get("count", 0)
 
-            print(f"SNAPPR_DEBUG: Found {len(shoot_types)} shoot types in results")
+            debug_print(f"SNAPPR_DEBUG: Found {len(shoot_types)} shoot types in results")
 
             if shoot_types and len(shoot_types) > 0:
-                message += f"Found {count} of {total} shoot types:\n\n"
+                message += f"*Found {count} of {total} available shoot types:*\n\n"
                 for i, shoot_type in enumerate(shoot_types):
-                    print(f"SNAPPR_DEBUG: Processing shoot_type {i}: {shoot_type}")
+                    debug_print(f"SNAPPR_DEBUG: Processing shoot_type {i}: {shoot_type}")
                     if isinstance(shoot_type, dict):
                         name = shoot_type.get("name", "Unknown")
                         display_name = shoot_type.get("display_name", name)
-
                         message += f"• **{display_name}** (`{name}`)\n"
                     else:
                         message += f"• {str(shoot_type)}\n"
+
+                message += f"\n*Use the name in backticks (e.g., `food`, `real-estate`) when checking coverage or booking.*"
             else:
-                message += "No shoot types found in results array."
+                message += "⚠️ No shoot types found in results array."
         else:
-            # Fallback - try other possible structures
-            shoot_types = None
+            # Handle different response structures or errors
+            message += "⚠️ Unexpected API response format.\n\n"
+            message += f"**Debug information:**\n"
+            message += f"- Response type: `{type(result)}`\n"
             if isinstance(result, dict):
-                # Try different possible keys
-                shoot_types = (
-                    result.get("data", []) or
-                    result.get("shoot_types", []) or
-                    result.get("shoottypes", []) or
-                    result.get("types", [])
-                )
-                print(f"SNAPPR_DEBUG: Fallback - extracted shoot_types: {shoot_types}")
-            elif isinstance(result, list):
-                shoot_types = result
-                print(f"SNAPPR_DEBUG: Response is a list directly: {shoot_types}")
+                message += f"- Available keys: `{list(result.keys())}`\n"
+                # Try to extract any useful data
+                if "error" in result:
+                    message += f"- Error message: `{result['error']}`\n"
+            message += f"- Raw response: `{str(result)[:200]}...`"
 
-            if shoot_types and len(shoot_types) > 0:
-                message += f"Found {len(shoot_types)} shoot types (fallback parsing):\n\n"
-                for i, shoot_type in enumerate(shoot_types):
-                    print(f"SNAPPR_DEBUG: Processing shoot_type {i}: {shoot_type}")
-                    if isinstance(shoot_type, dict):
-                        name = shoot_type.get("name", shoot_type.get("id", "Unknown"))
-                        display_name = shoot_type.get("display_name", shoot_type.get("title", name))
-
-                        message += f"• **{display_name}** (`{name}`)\n"
-                    elif isinstance(shoot_type, str):
-                        message += f"• {shoot_type}\n"
-                    else:
-                        message += f"• {str(shoot_type)}\n"
-            else:
-                message += "No shoot types found in response."
-                message += f"\nDebugging info:\n"
-                message += f"- Response type: {type(result)}\n"
-                message += f"- Response keys (if dict): {list(result.keys()) if isinstance(result, dict) else 'N/A'}\n"
-                message += f"- Response length (if list): {len(result) if isinstance(result, list) else 'N/A'}\n"
-
-        print(f"SNAPPR_DEBUG: Returning message: {message}")
+        debug_print(f"SNAPPR_DEBUG: Returning message: {message}")
         return [{"type": "text", "text": message}]
 
     except Exception as e:
-        error_msg = f"SNAPPR_ERROR: Exception in handle_list_shoot_types: {str(e)}"
-        print(error_msg)
+        error_msg = f"❌ **Error getting shoot types**\n\n{str(e)}\n\nPlease check:\n• API key is valid\n• Network connection\n• Snappr API service status"
+        debug_print(f"SNAPPR_ERROR: Exception in handle_list_shoot_types: {str(e)}")
         return [{"type": "text", "text": error_msg}]
 
 
 async def handle_list_editing_job_types(client: SnapprClient, args: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Get available photo editing job types"""
-    result = await client.get("editing-job-types")
+    try:
+        # Using the correct endpoint from official Snappr API docs
+        result = await client.get("editing-job-types")
 
-    # Debug: Show raw API response
-    message = f"🎨 Available Photo Editing Job Types:\n\n"
-    message += f"Raw API Response: {result}\n\n"
+        message = f"🎨 **Available Photo Editing Job Types**\n\n"
 
-    # Try different possible response structures
-    editing_types = (
-        result.get("editing_job_types", []) or
-        result.get("data", []) or
-        result.get("types", []) or
-        result.get("editing_types", []) or
-        (result if isinstance(result, list) else [])
-    )
+        # Based on official Snappr API docs, the response structure should be similar to shoot types:
+        # {
+        #   "results": [
+        #     {"name": "food", "display_name": "Food"},
+        #     {"name": "real-estate", "display_name": "Real Estate"}
+        #   ],
+        #   "count": 10,
+        #   "limit": 100,
+        #   "offset": 0,
+        #   "total": 10
+        # }
 
-    if editing_types:
-        message += "Found editing job types:\n\n"
-        for editing_type in editing_types:
-            if isinstance(editing_type, str):
-                message += f"• {editing_type}\n"
-            elif isinstance(editing_type, dict):
-                name = editing_type.get("name", editing_type.get("display_name", editing_type.get("type", "Unknown")))
-                description = editing_type.get("description", "")
-                price = editing_type.get("price", "")
+        if isinstance(result, dict) and "results" in result:
+            editing_types = result.get("results", [])
+            total = result.get("total", 0)
+            count = result.get("count", 0)
 
-                message += f"• **{name}**"
-                if price:
-                    message += f" - ${price}"
-                if description:
-                    message += f"\n  {description}"
-                message += "\n\n"
-    else:
-        message += "No editing job types found in response."
+            if editing_types and len(editing_types) > 0:
+                message += f"*Found {count} of {total} available editing job types:*\n\n"
+                for editing_type in editing_types:
+                    if isinstance(editing_type, dict):
+                        name = editing_type.get("name", "Unknown")
+                        display_name = editing_type.get("display_name", name)
+                        message += f"• **{display_name}** (`{name}`)\n"
+                    else:
+                        message += f"• {str(editing_type)}\n"
 
-    return [{"type": "text", "text": message}]
+                message += f"\n*Use the name in backticks (e.g., `food`, `real-estate`) when creating editing jobs.*"
+            else:
+                message += "⚠️ No editing job types found in results array."
+        else:
+            # Handle different response structures or errors
+            message += "⚠️ Unexpected API response format.\n\n"
+            message += f"**Debug information:**\n"
+            message += f"- Response type: `{type(result)}`\n"
+            if isinstance(result, dict):
+                message += f"- Available keys: `{list(result.keys())}`\n"
+                if "error" in result:
+                    message += f"- Error message: `{result['error']}`\n"
+            message += f"- Raw response: `{str(result)[:200]}...`"
+
+        return [{"type": "text", "text": message}]
+
+    except Exception as e:
+        error_msg = f"❌ **Error getting editing job types**\n\n{str(e)}\n\nPlease check:\n• API key is valid\n• Network connection\n• Snappr API service status"
+        return [{"type": "text", "text": error_msg}]
 
 
 async def handle_check_coverage(client: SnapprClient, args: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -750,14 +744,21 @@ async def handle_get_booking_media(client: SnapprClient, args: Dict[str, Any]) -
     return [{"type": "text", "text": message}]
 
 
-if __name__ == "__main__":
-    async def main():
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            initialization_options = InitializationOptions(
-                server_name="snappr-api",
-                server_version="1.0.0",
-                capabilities=ServerCapabilities()
-            )
-            await app.run(read_stream, write_stream, initialization_options)
+async def main():
+    """Main entry point for the Snappr MCP server"""
+    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
+        initialization_options = InitializationOptions(
+            server_name="snappr-api",
+            server_version="1.0.0",
+            capabilities=ServerCapabilities()
+        )
+        await app.run(read_stream, write_stream, initialization_options)
 
+
+def cli_main():
+    """CLI entry point for uvx"""
     asyncio.run(main())
+
+
+if __name__ == "__main__":
+    cli_main()

@@ -1,0 +1,56 @@
+[project]
+name = "snappr-mcp"
+version = "0.1.0"
+description = "Snappr API MCP Server - Photography services integration for Claude Desktop"
+authors = [{name = "Nicolas Gaviria", email = "nicolas@example.com"}]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["mcp", "snappr", "photography", "api", "claude"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0"
+]
+
+[project.scripts]
+snappr-mcp = "snappr_mcp:cli_main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/snappr-mcp"
+Repository = "https://github.com/yourusername/snappr-mcp"
+Issues = "https://github.com/yourusername/snappr-mcp/issues"
+Documentation = "https://github.com/yourusername/snappr-mcp#readme"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["snappr_mcp"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt", "*.env.example"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=22.0",
+    "isort>=5.0",
+    "mypy>=1.0"
+]
+
+[tool.uv]
+dev-dependencies = []

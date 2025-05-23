@@ -14,6 +14,32 @@ This MCP server exposes the following Snappr API capabilities:
 
 ## Setup
 
+### Option 1: Using uvx (Recommended)
+
+This project now supports `uvx` for easy, isolated execution without managing virtual environments.
+
+1. **Install uv/uvx** (if not already installed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Configure API Access**:
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your Snappr API key
+   ```
+
+3. **Run directly with uvx**:
+   ```bash
+   # From the project directory
+   uvx --from . snappr-mcp
+
+   # Or use the provided script
+   ./run_server.sh
+   ```
+
+### Option 2: Traditional Setup
+
 1. **Install Dependencies**:
    ```bash
    uv venv
@@ -27,10 +53,16 @@ This MCP server exposes the following Snappr API capabilities:
    # Edit .env and add your Snappr API key
    ```
 
-3. **Get Your API Key**:
-   - Log into your Snappr Photography Portal
-   - Navigate to API settings
-   - Generate or copy your API key
+3. **Run the server**:
+   ```bash
+   python app.py
+   ```
+
+## Get Your API Key
+
+- Log into your Snappr Photography Portal
+- Navigate to API settings
+- Generate or copy your API key
 
 ## Available Tools
 
@@ -108,24 +140,61 @@ Retrieve media from a completed booking.
 
 ## Running the Server
 
-### Standalone Testing
+### With uvx (Recommended)
 ```bash
-python app.py
+# From project directory
+./run_server.sh
+
+# Or directly
+uvx --from . snappr-mcp
 ```
 
 ### With Claude Desktop
 
 Add this to your Claude Desktop MCP configuration:
 
+#### Using uvx:
+```json
+{
+  "mcpServers": {
+    "snappr-api": {
+      "command": "uvx",
+      "args": ["--from", "/path/to/snappr-mcp", "snappr-mcp"],
+      "env": {
+        "SNAPPR_BASE_URL": "https://api.snappr.com/",
+        "SNAPPR_API_KEY": "your_api_key_here",
+      }
+    }
+  }
+}
+```
+
+#### Using shell script:
+```json
+{
+  "mcpServers": {
+    "snappr-api": {
+      "command": "/path/to/snappr-mcp/run_server.sh",
+      "args": [],
+      "env": {
+        "SNAPPR_BASE_URL": "https://api.snappr.com/",
+        "SNAPPR_API_KEY": "your_api_key_here",
+      }
+    }
+  }
+}
+```
+
+#### Traditional method:
 ```json
 {
   "mcpServers": {
     "snappr-api": {
       "command": "python",
-      "args": ["/path/to/snappr-api/app.py"],
+      "args": ["/path/to/snappr-mcp/app.py"],
       "env": {
+        "SNAPPR_BASE_URL": "https://api.snappr.com/",
         "SNAPPR_API_KEY": "your_api_key_here",
-        "SNAPPR_USE_SANDBOX": "true"
       }
     }
   }
@@ -135,7 +204,7 @@ Add this to your Claude Desktop MCP configuration:
 ## Environment Variables
 
 - `SNAPPR_API_KEY`: Your Snappr API key (required)
-- `SNAPPR_USE_SANDBOX`: Set to "true" for sandbox environment (default: false)
+- `SNAPPR_BASE_URL`: Set to "https://api.snappr.com/" for production environment (default: "https://api.snappr.com/")
 
 ## Example Usage
 
