@@ -51,9 +51,10 @@ from pydantic import BaseModel
 
 
 def debug_print(message: str):
-    """Debug print function - disabled for MCP compatibility"""
-    # Completely disabled to prevent stdout interference with MCP protocol
-    pass
+    """Debug print function - enabled for debugging authentication issues"""
+    # Write to stderr to avoid interfering with MCP protocol on stdout
+    print(f"[SNAPPR_DEBUG] {message}", file=sys.stderr)
+    sys.stderr.flush()
 
 
 class SnapprClient:
@@ -61,7 +62,7 @@ class SnapprClient:
 
     def __init__(self, api_key: str, use_sandbox: bool = False):
         self.api_key = api_key
-        self.base_url = os.getenv("SNAPPR_BASE_URL")
+        self.base_url = os.getenv("SNAPPR_BASE_URL", "https://dev-api.snappr.com/")
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -351,6 +352,12 @@ def get_client() -> SnapprClient:
     global snappr_client
     if snappr_client is None:
         debug_print("SNAPPR_CLIENT_DEBUG: Initializing new Snappr client")
+
+        # Debug all environment variables
+        debug_print(f"SNAPPR_CLIENT_DEBUG: All environment variables:")
+        for key, value in os.environ.items():
+            if 'SNAPPR' in key:
+                debug_print(f"SNAPPR_CLIENT_DEBUG: {key} = {value[:20]}..." if len(value) > 20 else f"SNAPPR_CLIENT_DEBUG: {key} = {value}")
 
         api_key = os.getenv("SNAPPR_API_KEY")
         debug_print(f"SNAPPR_CLIENT_DEBUG: API Key found: {'Yes' if api_key else 'No'}")

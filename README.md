@@ -218,6 +218,23 @@ Once connected to Claude Desktop, you can use natural language:
 - "List all my recent bookings"
 - "Get the photos from booking ABC123"
 
+## Troubleshooting
+
+### MCP Server Not Working After Updates
+
+**Problem:** Claude Desktop shows "Invalid Snappr API key" or other errors after making code changes.
+
+**Solution:** Clear the uvx/uv cache and restart Claude Desktop:
+
+```bash
+# Clear the uv cache (this usually fixes the issue)
+uv cache clean
+
+# Restart Claude Desktop completely (quit and reopen)
+```
+
+**Why this happens:** uvx caches packages and may use an outdated version even after you make changes to your local code.
+
 ## API Documentation
 
 For detailed Snappr API documentation, visit: https://docs.snappr.com/
